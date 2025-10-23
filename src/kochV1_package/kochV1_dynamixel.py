@@ -23,17 +23,11 @@ from typing import (
 )
 
 class KochV1_DxlBus(DxlBus):
-    def __init__(self, port_name: str = "", baudrate: int = 1_000_000, protocol_version: float = 2.0):
+    def __init__(self, motor_physical_home_positions: List[int], 
+                 port_name: str = "", baudrate: int = 1_000_000, protocol_version: float = 2.0):
         super().__init__(port_name, baudrate, protocol_version)
 
-        self.motors: List[DynamixelXL430_W250 | DynamixelXL330_M288] = [
-            DynamixelXL430_W250(1, 2048,        np.array([ 1024, 3072])),
-            DynamixelXL430_W250(2, 1024 + 88,   np.array([ 1024 -180,  1024 + 1450])), # motor zero -> dh-zero 
-            DynamixelXL330_M288(3, 2048 - 106,  np.array([ 2048 - 1950, 2048 + 160])), # motor zero -> dh-zero 
-            DynamixelXL330_M288(4, 2048 - 1006, np.array([ 2048 - 1024, 2048 + 1024])), # motor zero -> dh-zero 
-            DynamixelXL330_M288(5, 2048,        np.array([ 2048 - 2048, 2048 + 2048])),    
-            DynamixelXL330_M288(6, 2048,        np.array([ 2048 - 212, 2048 + 827])),
-        ]
+        self.motors: List[DynamixelXL430_W250 | DynamixelXL330_M288] = self._init_motors(motor_physical_home_positions)
 
         self.make_default_sync_groups()
 
@@ -189,6 +183,26 @@ class KochV1_DxlBus(DxlBus):
         self.write_reg(motor.id, motor.EEPROM.OPERATING_MODE, operating_mode)
 
         self._enable_torque(motor)
+
+    def _init_motors(self, p_home: List[int]):
+        # Motor physical home positions are depending on the assembly of the robot
+        # But the movement limits are fixed for the robot design for chosen convenience
+        logical_limits = [
+            (1024, 1024),
+            (180, 1450),
+            (1950, 160),
+            (1024, 1024),
+            (2048, 2048),
+            (200, 800),
+        ]
+        return [
+            DynamixelXL430_W250(1, p_home[0],        np.array([p_home[0] - logical_limits[0][0], p_home[0] + logical_limits[0][1]])),
+            DynamixelXL430_W250(2, p_home[1] + 88,   np.array([p_home[1] - logical_limits[1][0], p_home[1] + logical_limits[1][1]])), # motor zero -> dh-zero 
+            DynamixelXL330_M288(3, p_home[2] - 106,  np.array([p_home[2] - logical_limits[2][0], p_home[2] + logical_limits[2][1]])), # motor zero -> dh-zero 
+            DynamixelXL330_M288(4, p_home[3] - 1006, np.array([p_home[3] - logical_limits[3][0], p_home[3] + logical_limits[3][1]])), # motor zero -> dh-zero 
+            DynamixelXL330_M288(5, p_home[4],        np.array([p_home[4] - logical_limits[4][0], p_home[4] + logical_limits[4][1]])),    
+            DynamixelXL330_M288(6, p_home[5],        np.array([p_home[5] - logical_limits[5][0], p_home[5] + logical_limits[5][1]])),
+        ]
 
     def _validate_motor_operating_mode(self, motor: DynamixelXL330_M288 | DynamixelXL430_W250,
                                        operating_mode: XL330_M288OperatingModeType | XL430_W250OperatingModeType):
