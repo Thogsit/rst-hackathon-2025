@@ -40,6 +40,8 @@ class KochV1_DxlBus(DxlBus):
         
         for motor in self.motors:
             self._init_physical_home_position(motor)
+            
+            self._set_motor_velocity_and_acceleration(motor, velocity=150, acceleration=10)
 
             # it is possible to configure EEPROM so torque is enabled by default 
             # see https://emanual.robotis.com/docs/en/dxl/x/xl430-w250/#startup-configuration
@@ -225,6 +227,14 @@ class KochV1_DxlBus(DxlBus):
             motor.physical_home_position += motor.FULL_ROTATION_TICKS
             motor.physical_position_limits += motor.FULL_ROTATION_TICKS
 
+
+    def _set_motor_velocity_and_acceleration(
+            self, motor: DynamixelXL330_M288 | DynamixelXL430_W250, 
+            velocity: int = 150, acceleration: int = 10
+            ):
+        
+        self.write_reg(motor.id, motor.RAM.PROFILE_VELOCITY, velocity)
+        self.write_reg(motor.id, motor.RAM.PROFILE_ACCELERATION, acceleration)
 
     def _enable_torque(self, motor: DynamixelXL330_M288 | DynamixelXL430_W250):
         self.write_reg(motor.id, motor.RAM.TORQUE_ENABLE, 1)
