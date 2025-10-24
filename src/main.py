@@ -1,6 +1,8 @@
 import logging
 import time
 
+import numpy as np
+
 from kochV1_package import KochV1_Robot, KochV1_DxlBus
 from utils import Unit
 
@@ -16,6 +18,10 @@ def main():
         # Move to a joint configuration (degrees shown for readability)
         robot.set_joints([0, 90, -90, -90, 0], unit=Unit.DEG)
         time.sleep(3)  # allow time to reach goal position
+
+        robot.set_gripper_position_from_xyz_psi_phi(0.13, 0.0, 0.09, -np.pi/2, 0)
+        time.sleep(3)  # allow time to reach goal position
+
 
         robot.set_joints([-45, 90, -90, -90, 0], unit=Unit.DEG)
         time.sleep(3)  # allow time to reach goal position

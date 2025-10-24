@@ -36,7 +36,7 @@ class KochV1_Robot:
         return joint_angles
 
     def set_gripper_position_from_transform(self, transform: SE3):
-        desired_joint_angles = self.kinematics_model.compute_inverse_kinematics(transform, elbow_down=False)
+        desired_joint_angles = self.kinematics_model.compute_inverse_kinematics(transform)
         logging.debug(f"\n\tDesired angles: {np.round(np.rad2deg(desired_joint_angles), 2)}")
         
         self.set_joints(desired_joint_angles, unit=Unit.RAD)

@@ -80,11 +80,11 @@ class RobotConfig:
 class KochV1_KinematicsModel:
     def __init__(self):
         joints = [
-            DHJoint(type=JointType.REVOLUTE, a=0,       alpha=np.pi/2, d=0.0563,   q_offset=0),
-            DHJoint(type=JointType.REVOLUTE, a=0.10931, alpha=0,       d=0,        q_offset=-7.78 * (np.pi/180)),
-            DHJoint(type=JointType.REVOLUTE, a=0.10051, alpha=0,       d=0,        q_offset= 9.32 * (np.pi/180)),
-            DHJoint(type=JointType.REVOLUTE, a=7e-6,    alpha=np.pi/2, d=0.953e-3, q_offset=88.46 * (np.pi/180)),
-            DHJoint(type=JointType.REVOLUTE, a=0,       alpha=0,       d=0.0681,   q_offset=0),
+            DHJoint(type=JointType.REVOLUTE, a=0,       alpha=np.pi/2, d=0.0563,   q_offset=0,                   q_limits=(-np.pi / 2, np.pi / 2)),
+            DHJoint(type=JointType.REVOLUTE, a=0.10931, alpha=0,       d=0,        q_offset=-7.78 * (np.pi/180), q_limits=(-8*np.pi/180, 125*np.pi/180)),
+            DHJoint(type=JointType.REVOLUTE, a=0.10051, alpha=0,       d=0,        q_offset= 9.32 * (np.pi/180), q_limits=(-170*np.pi/180, 15*np.pi/180)),
+            DHJoint(type=JointType.REVOLUTE, a=7e-6,    alpha=np.pi/2, d=0.953e-3, q_offset=88.46 * (np.pi/180), q_limits=(-np.pi/2, np.pi/2)),
+            DHJoint(type=JointType.REVOLUTE, a=0,       alpha=0,       d=0.0681,   q_offset=0,                   q_limits=(-np.pi, np.pi)),
         ]
 
         self._robot_cfg = RobotConfig.from_DH_parameters(joints)
@@ -103,7 +103,7 @@ class KochV1_KinematicsModel:
 
         return T_ee
     
-    def compute_inverse_kinematics(self, T_ee: SE3, elbow_down: bool = True) -> List[float] | None:
+    def compute_inverse_kinematics(self, T_ee: SE3) -> List[float] | None:
         l_0 = self.robot_cfg.dh_joints[0].d
         l_1 = self.robot_cfg.dh_joints[1].a
         l_2 = self.robot_cfg.dh_joints[2].a
@@ -132,26 +132,78 @@ class KochV1_KinematicsModel:
         alpha = np.acos((l_1**2 + l_2**2 - d**2) / (2*l_1*l_2))
         beta = np.acos((l_1**2 + d**2 - l_2**2) / (2*l_1*d))
 
-        if elbow_down:
-            theta_2 = np.atan2(y_3, x_3) - beta
-            theta_3 = np.pi - alpha
-        else:
-            theta_2 = np.atan2(y_3, x_3) + beta
-            theta_3 = -(np.pi - alpha)
+        # elbow down solution ---------------------------------------------------------
+        theta_2_elbow_down = np.atan2(y_3, x_3) - beta
+        theta_3_elbow_down = np.pi - alpha
 
-        if (not check_limits(theta_2, self.robot_cfg.dh_joints[1].q_limits) 
-                or not check_limits(theta_3, self.robot_cfg.dh_joints[2].q_limits)):
-                return None
+        theta_4_elbow_down = psi - (theta_2_elbow_down + theta_3_elbow_down)
 
-        # Theta 4 ---------------------------------------------------------------------
-        theta_4 = psi - (theta_2 + theta_3)
-        if not check_limits(theta_4, self.robot_cfg.dh_joints[3].q_limits):
+        theta_5_elbow_down = self._calculate_theta_5(
+            theta_1, theta_2_elbow_down, theta_3_elbow_down, theta_4_elbow_down, T_ee
+        )
+
+        success_elbow_down = all([
+            check_limits(theta_2_elbow_down, self.robot_cfg.dh_joints[1].q_limits),
+            check_limits(theta_3_elbow_down, self.robot_cfg.dh_joints[2].q_limits),
+            check_limits(theta_4_elbow_down, self.robot_cfg.dh_joints[3].q_limits),
+            check_limits(theta_5_elbow_down, self.robot_cfg.dh_joints[4].q_limits),
+        ])
+
+        # elbow up solution -----------------------------------------------------------
+        theta_2_elbow_up = np.atan2(y_3, x_3) + beta
+        theta_3_elbow_up = -(np.pi - alpha)
+
+        theta_4_elbow_up = psi - (theta_2_elbow_up + theta_3_elbow_up)
+
+        theta_5_elbow_up = self._calculate_theta_5(
+            theta_1, theta_2_elbow_up, theta_3_elbow_up, theta_4_elbow_up, T_ee
+        )
+
+        success_elbow_up = all([
+            check_limits(theta_2_elbow_up, self.robot_cfg.dh_joints[1].q_limits),
+            check_limits(theta_3_elbow_up, self.robot_cfg.dh_joints[2].q_limits),
+            check_limits(theta_4_elbow_up, self.robot_cfg.dh_joints[3].q_limits),
+            check_limits(theta_5_elbow_up, self.robot_cfg.dh_joints[4].q_limits),
+        ])
+
+        # Candidate Selection ---------------------------------------------------------
+        # select candidate closer to current joint state
+        if not success_elbow_down and not success_elbow_up:
             return None
+        
+        elif not success_elbow_down and success_elbow_up:
+            return [theta_1, theta_2_elbow_up, theta_3_elbow_up, theta_4_elbow_up, theta_5_elbow_up]
+        
+        elif success_elbow_down and not success_elbow_up:
+            return [theta_1, theta_2_elbow_down, theta_3_elbow_down, theta_4_elbow_down, theta_5_elbow_down]
+        
+        # else
+        elif success_elbow_down and success_elbow_up:
+            # compare quaternion distances to goal and select closer one
 
-        # Theta 5 ---------------------------------------------------------------------
-        # theta_5 can be determined by analyzing the difference between two poses:
-        #   1. The pose before rotation around the end-effector's z-axis.
-        #   2. The goal end-effector pose: pose after rotation around the end-effector's z-axis.
+            fwd_elbow_down = self.compute_forward_kinematics(
+                [theta_1, theta_2_elbow_down, theta_3_elbow_down, theta_4_elbow_down, theta_5_elbow_down]
+            )
+            fwd_elbow_up = self.compute_forward_kinematics(
+                [theta_1, theta_2_elbow_up, theta_3_elbow_up, theta_4_elbow_up, theta_5_elbow_up]
+            )
+
+            goal_quat = T_ee.UnitQuaternion()
+            elbow_down_quat = fwd_elbow_down.UnitQuaternion()
+            elbow_up_quat = fwd_elbow_up.UnitQuaternion()
+
+            # see http://math.stackexchange.com/questions/90081/quaternion-distance
+            dist_elbow_down = 1 - float(np.dot(goal_quat.vec, elbow_down_quat.vec))**2
+            dist_elbow_up   = 1 - float(np.dot(goal_quat.vec, elbow_up_quat.vec))**2
+
+            if abs(dist_elbow_down) < abs(dist_elbow_up):
+                return [theta_1, theta_2_elbow_down, theta_3_elbow_down, theta_4_elbow_down, theta_5_elbow_down]
+            else:
+                return [theta_1, theta_2_elbow_up, theta_3_elbow_up, theta_4_elbow_up, theta_5_elbow_up]
+
+
+    
+    def _calculate_theta_5(self, theta_1, theta_2, theta_3, theta_4, T_ee) -> float:
         T_before = self.compute_forward_kinematics([theta_1, theta_2, theta_3, theta_4, 0])
         T_after = T_ee
 
@@ -164,10 +216,7 @@ class KochV1_KinematicsModel:
         sin_theta_5 = np.dot(z_local, np.cross(x_before, x_after))   # vectors are normalized
         
         theta_5 = np.arctan2(sin_theta_5, cos_theta_5)
-        if not check_limits(theta_5, self.robot_cfg.dh_joints[4].q_limits):
-            return None
-
-        return [theta_1, theta_2, theta_3, theta_4, theta_5]
+        return theta_5
     
     def compute_jacobian(self, joint_angles: List[float]) -> np.ndarray:
         """
