@@ -6,7 +6,6 @@ from tasks.abstract_task import AbstractTask
 
 
 class DuckGrabberTask(AbstractTask):
-
     END_POS_MAP = {
         13.0: [70, -30, -90],
         11.0: [65, -27, -90],

@@ -2,82 +2,48 @@ import time
 from typing import List
 
 from kochV1_package import KochV1_Robot
-from models import Detection, ObjectType, Position
+from models import Detection, ObjectType, Position, ImagePosition
 from tasks.abstract_task import AbstractTask
 
 
 class CupDestroyerTask(AbstractTask):
+    DISTANCE_TO_CUPS = 0.7
+    LEFT_IMAGE_OFFSET = 70.0
+    RIGHT_IMAGE_OFFSET = 230.0
+    CUP_HORIZONTAL_DISTANCE_IN_M = 0.195
     TEST_DETECTIONS = [
         [
             Detection(
                 Position(0, 0.0, 0),
+                ImagePosition(88, 203),
                 ObjectType.CUP,
                 1,
             ),
             Detection(
                 Position(0, -0.11, 0),
-                ObjectType.CUP,
-                2,
-            ),
-        ]
-    ]
-    TEST_DETECTIONS2 = [
-        [
-            Detection(
-                Position(0, 0.09, 0),
-                ObjectType.CUP,
-                1,
-            ),
-            Detection(
-                Position(0, 0, 0),
+                ImagePosition(110, 102),
                 ObjectType.CUP,
                 2,
             ),
             Detection(
-                Position(0, -0.1, 0),
+                Position(0, -0.11, 0),
+                ImagePosition(154, 194),
                 ObjectType.CUP,
                 3,
             ),
             Detection(
-                Position(0, 0.05, 0.1),
+                Position(0, -0.11, 0),
+                ImagePosition(175, 96),
                 ObjectType.CUP,
                 4,
             ),
             Detection(
-                Position(0, -0.05, 0.1),
+                Position(0, -0.11, 0),
+                ImagePosition(218, 186),
                 ObjectType.CUP,
                 5,
             ),
-            Detection(
-                Position(0, 0, 0.2),
-                ObjectType.CUP,
-                6,
-            ),
-        ],
-        [
-            Detection(
-                Position(0, 0, 0),
-                ObjectType.CUP,
-                2,
-            ),
-            Detection(
-                Position(0, -0.1, 0),
-                ObjectType.CUP,
-                3,
-            ),
-            Detection(
-                Position(0, -0.05, 0.1),
-                ObjectType.CUP,
-                5,
-            ),
-        ],
-        [
-            Detection(
-                Position(0, -0.1, 0),
-                ObjectType.CUP,
-                3,
-            ),
-        ],
+        ]
     ]
 
     def __init__(self, robot: KochV1_Robot):
@@ -107,11 +73,37 @@ class CupDestroyerTask(AbstractTask):
             time.sleep(0.2)
 
     @staticmethod
+    def image_pos_to_position(pos: ImagePosition) -> Position:
+        # Clamp the x position to be within the offsets
+        clamped_x = max(CupDestroyerTask.LEFT_IMAGE_OFFSET,
+                        min(pos.x, CupDestroyerTask.RIGHT_IMAGE_OFFSET))
+
+        # Calculate the center point between the two offsets
+        center = (CupDestroyerTask.LEFT_IMAGE_OFFSET + CupDestroyerTask.RIGHT_IMAGE_OFFSET) / 2
+
+        # Calculate offset from center in pixels
+        pixel_offset_from_center = clamped_x - center
+
+        # Calculate the total pixel range
+        pixel_range = CupDestroyerTask.RIGHT_IMAGE_OFFSET - CupDestroyerTask.LEFT_IMAGE_OFFSET
+
+        # Convert to meters, then to centimeters
+        # The offset as a ratio of the total range, multiplied by the physical distance
+        y_in_meters = (pixel_offset_from_center / pixel_range) * CupDestroyerTask.CUP_HORIZONTAL_DISTANCE_IN_M
+    
+        return Position(CupDestroyerTask.DISTANCE_TO_CUPS, -y_in_meters, pos.y / -1000)
+
+    @staticmethod
     def calculate_degrees_from_detections(detections: List[Detection]) -> float:
         # Filter all irrelevant detections
         detections = [d for d in detections if d.object_type == ObjectType.CUP]
         if len(detections) == 0:
             return 0.0 # TODO Fix
+
+        # Transform image positions to real positions
+        for i, val in enumerate(detections):
+            detections[i].position = CupDestroyerTask.image_pos_to_position(val.image_position)
+            print("Detection " + str(i) + ": " + str(detections[i].position.y))
 
         target_position = detections[0].position
         if len(detections) > 1:
@@ -124,7 +116,7 @@ class CupDestroyerTask(AbstractTask):
             # Now find all cups that are roughly at the same height
             low_level_cups: List[Detection] = []
             for detection in detections:
-                if abs(detection.position.z - lowest_cup.position.z) < 0.04:
+                if abs(detection.position.z - lowest_cup.position.z) < 0.05:
                     low_level_cups.append(detection)
             print("Found " + str(len(low_level_cups)) + " low level cups!")
 

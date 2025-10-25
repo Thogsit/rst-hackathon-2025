@@ -7,6 +7,11 @@ class Position:
         self.y = y
         self.z = z
 
+class ImagePosition:
+    def __init__(self, x: float, y: float):
+        self.x = x
+        self.y = y
+
 class Vector:
     def __init__(self, x: float, y: float, z: float):
         self.x = x
@@ -29,7 +34,8 @@ class HandState(Enum):
     HAND_GRABBED = 2
 
 class Detection:
-    def __init__(self, position: Position, object_type: ObjectType, object_id: int):
+    def __init__(self, position: Position, image_position: ImagePosition, object_type: ObjectType, object_id: int):
         self.position = position
+        self.image_position = image_position
         self.object_type = object_type
         self.object_id = object_id
