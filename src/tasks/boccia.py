@@ -34,17 +34,12 @@ class BocciaTask(AbstractTask):
 
             # Phase 3: Throw ball
             #self.controls.change_arm_joints([0, 0, 45])
-            self.controls.ENTERED_VEL_MODE = True
-            self.robot.set_epcm_control_mode()
+            self.robot.set_velocity_and_accel(0, 0)
             self.controls.change_arm_joints([55, -20, 20])
             time.sleep(1)
             self.controls.close_hand()
+            self.robot.set_velocity_and_accel() # Reset to defaults
             self.controls.change_arm_joints([30, 0, 0])
-            time.sleep(1)
-            #self.robot.set_joints([0, 20, -10, 40, -90], unit=Unit.DEG)
-            #self.robot.set_velocity_control_mode()
-            #self.robot.set_goal_velocities([0.01, -11.0, -16.0, -5.0, 0.01])
-            #time.sleep(4)
 
             break
 

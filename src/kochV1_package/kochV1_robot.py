@@ -28,6 +28,10 @@ class KochV1_Robot:
         self._apply_dh_q_offsets()
         logging.info("Robot is ready")
 
+    def set_velocity_and_accel(self, velocity: int = 150, acceleration: int = 10):
+        for motor in self._dxl_bus.motors:
+            self._dxl_bus.set_motor_velocity_and_acceleration(motor, velocity, acceleration)
+
     def set_joints(self, joint_angles: List[float], unit: Unit = Unit.RAD):
         self._dxl_bus.set_joints(joint_angles, unit=unit)
 

@@ -16,17 +16,17 @@ class Controls:
     def __init__(self, robot: KochV1_Robot):
         self.robot = robot
 
-    def set_direction_in_degrees(self, direction: float):
+    def set_direction_in_degrees(self, direction: float, degree_margin: float = 2.0):
         joints = self.robot.read_joints(Unit.DEG)
         joints[0] = direction
         self.robot.set_joints(joints, unit=Unit.DEG)
-        self._wait_until_joints_reached(joints, margin=5.0, margin_overrides=[(0, 2.0)])
+        self._wait_until_joints_reached(joints, margin=5.0, margin_overrides=[(0, degree_margin)])
 
-    def set_hand_turn_in_degrees(self, turn: float):
+    def set_hand_turn_in_degrees(self, turn: float, degree_margin: float = 2.0):
         joints = self.robot.read_joints(Unit.DEG)
         joints[-1] = turn
         self.robot.set_joints(joints, unit=Unit.DEG)
-        self._wait_until_joints_reached(joints, margin=5.0, margin_overrides=[(len(joints) - 1, 2.0)])
+        self._wait_until_joints_reached(joints, margin=5.0, margin_overrides=[(len(joints) - 1, degree_margin)])
 
     def open_hand(self):
         self.robot.set_gripper_percentage(0.3)

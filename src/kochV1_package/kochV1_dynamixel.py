@@ -39,10 +39,10 @@ class KochV1_DxlBus(DxlBus):
         #    raise RuntimeError("Invalid motor configuration: incorrect Operating Mode, please check Motors using Wizard 2.0")
         
         for motor in self.motors:
-            #self.set_epcm_control_mode()
+            self.set_epcm_control_mode()
             self._init_physical_home_position(motor)
             
-            self._set_motor_velocity_and_acceleration(motor, velocity=150, acceleration=10)
+            self.set_motor_velocity_and_acceleration(motor, velocity=150, acceleration=10)
 
             # it is possible to configure EEPROM so torque is enabled by default 
             # see https://emanual.robotis.com/docs/en/dxl/x/xl430-w250/#startup-configuration
@@ -169,6 +169,7 @@ class KochV1_DxlBus(DxlBus):
         for motor in self.motors[:5]:
             # For both motor types same register value for velocity control mode
             self.set_operating_mode(motor, operating_mode = XL430_W250OperatingModeType.EXTENDED_POSITION_CONTROL_MODE)
+            self.set_motor_velocity_and_acceleration(motor, 150, 10)
 
     def set_operating_mode(self, motor: DynamixelXL330_M288 | DynamixelXL430_W250, 
                            operating_mode: XL330_M288OperatingModeType | XL430_W250OperatingModeType):
@@ -229,13 +230,16 @@ class KochV1_DxlBus(DxlBus):
             motor.physical_position_limits += motor.FULL_ROTATION_TICKS
 
 
-    def _set_motor_velocity_and_acceleration(
+    def set_motor_velocity_and_acceleration(
             self, motor: DynamixelXL330_M288 | DynamixelXL430_W250, 
             velocity: int = 150, acceleration: int = 10
             ):
         
-        self.write_reg(motor.id, motor.RAM.PROFILE_VELOCITY, velocity)
-        self.write_reg(motor.id, motor.RAM.PROFILE_ACCELERATION, acceleration)
+        #self.write_reg(motor.id, motor.RAM.PROFILE_VELOCITY, velocity)
+        #self.write_reg(motor.id, motor.RAM.PROFILE_ACCELERATION, acceleration)
+
+        self.write_reg(motor.id, motor.RAM.PROFILE_VELOCITY, to_u32(velocity))
+        self.write_reg(motor.id, motor.RAM.PROFILE_ACCELERATION, to_u32(acceleration))
 
     def _enable_torque(self, motor: DynamixelXL330_M288 | DynamixelXL430_W250):
         self.write_reg(motor.id, motor.RAM.TORQUE_ENABLE, 1)
