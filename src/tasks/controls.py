@@ -62,7 +62,7 @@ class Controls:
         cur_joints = self.robot.read_joints(Unit.DEG)
 
         if bottom_safety_pos:
-            if cur_joints[1] >= 20 and cur_joints[2] >= -40:
+            if cur_joints[1] >= 20 and cur_joints[2] >= -60:
                 self.change_arm_joints([80, -30, 0])
                 self.change_arm_joints([110, -90, -90])
             self.change_arm_joints([0, -90, 0])

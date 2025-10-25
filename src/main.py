@@ -3,6 +3,7 @@ from threading import Thread
 from typing import List
 
 from kochV1_package import KochV1_Robot, KochV1_DxlBus
+from tasks.boccia import BocciaTask
 from tasks.cup_destroyer import CupDestroyerTask
 from tasks.duck_grabber import DuckGrabberTask
 from perception.perception_controller import PerceptionController
@@ -48,6 +49,8 @@ def main():
             task_controller = DuckGrabberTask(robot)
         elif task == 3:
             task_controller = CupDestroyerTask(robot)
+        elif task == 4:
+            task_controller = BocciaTask(robot)
 
         if not task_controller:
             print("[!] Task currently not supported")
