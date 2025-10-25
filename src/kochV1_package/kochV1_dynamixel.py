@@ -128,7 +128,7 @@ class KochV1_DxlBus(DxlBus):
         logging.debug(f"Gripper Data Write: {gripper_position}")
         self.write_reg(6, DynamixelXL330_M288.RAM.GOAL_POSITION, gripper_position)
 
-    def set_goal_velocities(self, joint_velocities: List[float]):
+    def set_goal_velocities(self, joint_velocities: List[int]):
         """
         Set the joint velocities for the robot arm.
         :param joint_velocities: List of joint velocities (in DXL units).
