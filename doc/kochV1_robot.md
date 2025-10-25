@@ -131,6 +131,7 @@ Set the gripper closure percentage.
 ---
 
 ### `set_goal_velocities`
+> Commands require velocity control mode. Call `set_velocity_control_mode()` first to avoid command rejection or undefined behavior.
 
 ```python
 set_goal_velocities(joint_velocities: list[float]) -> None
@@ -139,10 +140,28 @@ set_goal_velocities(joint_velocities: list[float]) -> None
 Command joint velocities (rad/s) for joints 1–5 in **Velocity Control** mode.
 
 * **Args:** `joint_velocities` — rad/s for the first five joints.
-* **Notes:** switches motors to velocity mode; torque is briefly disabled and re-enabled, which can cause a small positional shift. The Dynamixel SDK requires non-zero profile acceleration; internally:
+* **Notes:** The Dynamixel SDK requires non-zero profile acceleration; internally:
   `profile_acceleration = int(goal_velocity / 2) + 1` (DXL units).
 
 ---
+### `set_velocity_control_mode`
+
+```python
+set_velocity_control_mode() -> None
+```
+
+Switches motors to velocity mode; torque is briefly disabled and re-enabled, which can cause a small positional shift. 
+
+---
+
+### `set_epcm_control_mode`
+
+```python
+set_velocity_control_mode() -> None
+```
+
+Switches motors to position control mode; torque is briefly disabled and re-enabled, which can cause a small positional shift.
+> Position control mode is enabled by default immediately after robot initialization. If the control mode is changed at runtime, you must re-enable it before issuing position-based commands
 
 ## 3) Units & Conversions
 To specify any desired unit use [utils](utils.md)-module, that provides:
