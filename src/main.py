@@ -1,45 +1,55 @@
 import logging
-import time
-
-import numpy as np
+from threading import Thread
+from typing import List
 
 from kochV1_package import KochV1_Robot, KochV1_DxlBus
-from utils import Unit
+from tasks.duck_grabber import DuckGrabberTask
+from perception.perception_controller import PerceptionController
+
+
+THREADS: List[Thread] = []
 
 def main():
     logging.basicConfig(level=logging.INFO)
-    # Physical home position of the motors in the assembly
     motor_physical_home_positions = [2048, 1024, 2048, 2048, 2048, 2048]
+
+    # Start perception threads
+    perception_controller = PerceptionController()
+    perception_yolo_thread = Thread(target=perception_controller.run_yolo, daemon=True)
+    THREADS.append(perception_yolo_thread)
+    perception_yolo_thread.start()
+    perception_processing_thread = Thread(target=perception_controller.run_processing, daemon=True)
+    THREADS.append(perception_processing_thread)
+    perception_processing_thread.start()
 
     # Recommended: use the bus as a context manager
     with KochV1_DxlBus(motor_physical_home_positions) as dxl_bus:
         robot = KochV1_Robot(dxl_bus)
-                
-        # Move to a joint configuration (degrees shown for readability)
-        robot.set_joints([0, 90, -90, -90, 0], unit=Unit.DEG)
-        time.sleep(3)  # allow time to reach goal position
 
-        robot.set_gripper_position_from_xyz_psi_phi(0.13, 0.0, 0.09, -np.pi/2, 0)
-        time.sleep(3)  # allow time to reach goal position
+        print("-=-= Throw'n Grab v1.3.3.7 =-=-")
+        print("[1] Test mode")
+        print("[2] Duck Grabber")
+        print("[3] Cup Destroyer")
+        print("[4] Boccia")
 
+        task = None
+        while True:
+            raw_task = input("Select task> ")
+            try:
+                task = int(raw_task)
+            except ValueError:
+                print("Invalid task")
+            if 0 < task < 5:
+                break
 
-        robot.set_joints([-45, 90, -90, -90, 0], unit=Unit.DEG)
-        time.sleep(3)  # allow time to reach goal position
+        task_controller = None
+        if task == 2:
+            task_controller = DuckGrabberTask(robot)
 
-        robot.set_gripper_percentage(0.3)
-        time.sleep(0.75)
-        robot.set_gripper_percentage(0.8)
-        time.sleep(0.75)
-
-        robot.set_joints([0, 90, -90, -90, 0], unit=Unit.DEG)
-        time.sleep(3)  # allow time to reach goal position
-
-        robot.set_joints([0, 0, -90, 0, 0], unit=Unit.DEG)
-        time.sleep(3)  # allow time to reach goal position
-
-        # Read back the current configuration
-        print(robot.read_joints(unit=Unit.DEG))
-        time.sleep(1)
+        if not task_controller:
+            print("[!] Task currently not supported")
+            exit(1)
+        task_controller.run()
 
 if __name__ == "__main__":
     main()
