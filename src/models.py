@@ -7,15 +7,21 @@ class Position:
         self.y = y
         self.z = z
 
+class Vector:
+    def __init__(self, x: float, y: float, z: float):
+        self.x = x
+        self.y = y
+        self.z = z
+
 class ObjectType(Enum):
     TARGET_BALL = 0
     BALL = 1
-    DUCK_YELLOW = 2
+    CUP = 2
     DUCK_BLUE = 3
     DUCK_RED = 4
-    DUCK_GREEN = 5
-    DUCK_WHITE = 6
-    CUP = 7
+    DUCK_YELLOW = 5
+    DUCK_GREEN = 6
+    DUCK_WHITE = 7
 
 class HandState(Enum):
     HAND_OPEN = 0

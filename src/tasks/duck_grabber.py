@@ -1,8 +1,8 @@
 import time
 
 from kochV1_package import KochV1_Robot
+from perception.perception_controller import PerceptionController
 from tasks.abstract_task import AbstractTask
-from utils import Unit
 
 
 class DuckGrabberTask(AbstractTask):
@@ -21,6 +21,18 @@ class DuckGrabberTask(AbstractTask):
             self.controls.change_arm_joints([90, -60, -30], margin_overrides=[(2, 20)])
 
             # Phase 2: Get arm down to catch duck
+            target_duck = None
+            while True:
+                duck_data = PerceptionController.read_duck_data()
+                if len(duck_data) == 0:
+                    print("Not seeing any ducks atm")
+                    time.sleep(0.5)
+                    continue
+                target_duck = duck_data[0]
+                for duck in duck_data:
+                    if duck.object_id > target_duck.object_id:
+                        target_duck = duck
+            target_radius = target_duck.radius
             # TODO: Implement this!
 
             # Phase 3: Get arm back behind to receive duck
