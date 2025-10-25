@@ -13,6 +13,7 @@ class DuckGrabberTask(AbstractTask):
         # Move arm to starting position, i.e. straight direction and a bit up
         self.controls.change_arm_joints([100, -50, -30])
         self.controls.set_direction_in_degrees(0)
+        self.controls.completely_close_hand()
 
         # Task loop
         while True:
@@ -40,19 +41,3 @@ class DuckGrabberTask(AbstractTask):
             self.controls.change_arm_joints([90, 20, 30])
             self.controls.change_arm_joints([125, 30, 30])
             time.sleep(5) # Wait until duck is taken
-
-
-
-
-        # Straighten arm to prepare it for forwards movement
-        #self.controls.change_arm_joints([120, -90, 0])
-
-        # Move arm forward
-        #self.controls.change_arm_joints([40, -10, 0], margin_overrides=[(2, 20)])
-
-        # Move hand towards duck
-        #self.controls.change_arm_joints([40, -10, -10], margin_overrides=[(2, 20)])
-
-
-        time.sleep(20)
-

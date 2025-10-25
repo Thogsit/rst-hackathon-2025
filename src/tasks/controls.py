@@ -11,6 +11,8 @@ class Controls:
     WAIT_TIMEOUT = 3 # After 3 sec of not reaching the margin, continue anyway
     DEFAULT_MARGIN = 15.0
 
+    ENTERED_VEL_MODE = False
+
     def __init__(self, robot: KochV1_Robot):
         self.robot = robot
 
@@ -25,6 +27,18 @@ class Controls:
         joints[-1] = turn
         self.robot.set_joints(joints, unit=Unit.DEG)
         self._wait_until_joints_reached(joints, margin=5.0, margin_overrides=[(len(joints) - 1, 2.0)])
+
+    def open_hand(self):
+        self.robot.set_gripper_percentage(0.3)
+        time.sleep(0.3)
+
+    def close_hand(self):
+        self.robot.set_gripper_percentage(0.55)
+        time.sleep(0.3)
+
+    def completely_close_hand(self):
+        self.robot.set_gripper_percentage(1.0)
+        time.sleep(0.3)
 
     def change_arm_joints(self, joint_angles: List[float], unit: Unit = Unit.DEG, margin: float = DEFAULT_MARGIN, margin_overrides: List[Tuple[int, float]] = None):
         if len(joint_angles) != 3:
@@ -43,6 +57,8 @@ class Controls:
         self._wait_until_joints_reached(joint_angles, unit, margin, margin_overrides)
 
     def safe_return(self, bottom_safety_pos: bool):
+        if self.ENTERED_VEL_MODE:
+            return
         cur_joints = self.robot.read_joints(Unit.DEG)
 
         if bottom_safety_pos:

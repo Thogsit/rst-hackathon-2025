@@ -39,7 +39,7 @@ class KochV1_DxlBus(DxlBus):
         #    raise RuntimeError("Invalid motor configuration: incorrect Operating Mode, please check Motors using Wizard 2.0")
         
         for motor in self.motors:
-            self.set_epcm_control_mode()
+            #self.set_epcm_control_mode()
             self._init_physical_home_position(motor)
             
             self._set_motor_velocity_and_acceleration(motor, velocity=150, acceleration=10)

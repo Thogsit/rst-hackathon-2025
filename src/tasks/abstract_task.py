@@ -23,3 +23,4 @@ class AbstractTask(ABC):
             print("Going back to safety position...")
         finally:
             self.controls.safe_return(self.bottom_safety_pos)
+            self.robot.set_epcm_control_mode()
