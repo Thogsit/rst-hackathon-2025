@@ -59,8 +59,7 @@ def calibrate_camera():
         dist_coeffs = np.array([0.183037, -0.508367, -0.039670, -0.006225], dtype=np.float32)
         img_pts = np.array(image_points, dtype=np.float32)
 
-        tvec = np.array([0, 0.15, 0.22], dtype=np.float32)
-        ret, rvec, tvec = cv2.solvePnP(world_points, img_pts, camera_matrix, dist_coeffs, tvec=tvec, useExtrinsicGuess=True)
+        ret, rvec, tvec = cv2.solvePnP(world_points, img_pts, camera_matrix, dist_coeffs)
         if not ret:
             logger.error("Cannot solve the camera matrix")
             return {'error': "Cannot solve the camera matrix"}
