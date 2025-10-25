@@ -12,11 +12,11 @@ class TestTask(AbstractTask):
     def _task_run(self):
         # Move arm to starting position, i.e. straight direction and a bit up
         self.controls.change_arm_joints([90, -90, -30])
-        self.controls.set_direction_in_degrees(0)
+        self.controls.set_direction(0)
         self.controls.change_arm_joints([90, -65, 10])
 
         print(self.robot.read_joints(Unit.DEG))
-        self.controls.set_direction_in_degrees(5, degree_margin=0.5)
+        self.controls.set_direction(5, degree_margin=0.5)
         print(self.robot.read_joints(Unit.DEG))
 
         time.sleep(20)

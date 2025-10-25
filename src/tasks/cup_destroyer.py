@@ -86,7 +86,7 @@ class CupDestroyerTask(AbstractTask):
     def _task_run(self):
         # Move arm to starting position, i.e. straight direction and a bit up
         self.controls.change_arm_joints([90, -90, -30])
-        self.controls.set_direction_in_degrees(0)
+        self.controls.set_direction(0)
         self.controls.change_arm_joints([90, -65, -20])
 
         for detections in self.TEST_DETECTIONS:
@@ -95,8 +95,8 @@ class CupDestroyerTask(AbstractTask):
             self.controls.change_arm_joints([130, 10, -30])
             target_degree = self.calculate_degrees_from_detections(detections)
             print("Target Degree: " + str(target_degree))
-            self.controls.set_direction_in_degrees(target_degree, degree_margin=0.5)
-            self.controls.set_hand_turn_in_degrees(90)
+            self.controls.set_direction(target_degree, degree_margin=0.5)
+            self.controls.set_hand_turn(90)
             self.controls.open_hand()
             time.sleep(4)
 
