@@ -7,7 +7,7 @@ from tasks.boccia import BocciaTask
 from tasks.cup_destroyer import CupDestroyerTask
 from tasks.duck_grabber import DuckGrabberTask
 from perception.perception_controller import PerceptionController
-
+from tasks.test_task import TestTask
 
 THREADS: List[Thread] = []
 
@@ -45,7 +45,9 @@ def main():
                 break
 
         task_controller = None
-        if task == 2:
+        if task == 1:
+            task_controller = TestTask(robot)
+        elif task == 2:
             task_controller = DuckGrabberTask(robot)
         elif task == 3:
             task_controller = CupDestroyerTask(robot)
