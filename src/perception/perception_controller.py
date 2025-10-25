@@ -158,6 +158,7 @@ class PerceptionController:
                     class_type = ObjectType.TARGET_BALL
                 else:
                     print(f"Unknown class id: {class_id}")
+                    continue
 
                 u = bbox.xywh[0][0]
                 v = bbox.xywh[0][1]
@@ -184,6 +185,7 @@ class PerceptionController:
                 image_position = ImagePosition(x=v, y=u)
                 detections.append(Detection(position, image_position, class_type, object_id))
 
+            self.write_detections(detections)
             pygame.display.flip()
             self.last_detections = detections
 

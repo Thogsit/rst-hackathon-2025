@@ -17,55 +17,55 @@ class PlatformPosition(Enum):
 class BocciaTask(AbstractTask):
     PLATFORM_POS = PlatformPosition.NONE
     TEST_DETECTIONS = [
-        [
-            Detection(
-                Position(0.25, -0.0, 0.0),
-                ObjectType.TARGET_BALL,
-                1,
-            ),
-        ],
-        [
-            Detection(
-                Position(0.25, -0.0, 0.0),
-                ObjectType.TARGET_BALL,
-                1,
-            ),
-        ],
-        [
-            Detection(
-                Position(0.25, -0.0, 0.0),
-                ObjectType.TARGET_BALL,
-                1,
-            ),
-        ],
-        [
-            Detection(
-                Position(0.25, -0.0, 0.0),
-                ObjectType.TARGET_BALL,
-                1,
-            ),
-        ],
-        [
-            Detection(
-                Position(0.25, -0.0, 0.0),
-                ObjectType.TARGET_BALL,
-                1,
-            ),
-        ],
-        [
-            Detection(
-                Position(0.25, -0.0, 0.0),
-                ObjectType.TARGET_BALL,
-                1,
-            ),
-        ],
-        [
-            Detection(
-                Position(0.25, -0.0, 0.0),
-                ObjectType.TARGET_BALL,
-                1,
-            ),
-        ],
+        #[
+        #    Detection(
+        #        Position(0.25, -0.0, 0.0),
+        #        ObjectType.TARGET_BALL,
+        #        1,
+        #    ),
+        #],
+        #[
+        #    Detection(
+        #        Position(0.25, -0.0, 0.0),
+        #        ObjectType.TARGET_BALL,
+        #        1,
+        #    ),
+        #],
+        #[
+        #    Detection(
+        #        Position(0.25, -0.0, 0.0),
+        #        ObjectType.TARGET_BALL,
+        #        1,
+        #    ),
+        #],
+        #[
+        #    Detection(
+        #        Position(0.25, -0.0, 0.0),
+        #        ObjectType.TARGET_BALL,
+        #        1,
+        #    ),
+        #],
+        #[
+        #    Detection(
+        #        Position(0.25, -0.0, 0.0),
+        #        ObjectType.TARGET_BALL,
+        #        1,
+        #    ),
+        #],
+        #[
+        #    Detection(
+        #        Position(0.25, -0.0, 0.0),
+        #        ObjectType.TARGET_BALL,
+        #        1,
+        #    ),
+        #],
+        #[
+        #    Detection(
+        #        Position(0.25, -0.0, 0.0),
+        #        ObjectType.TARGET_BALL,
+        #        1,
+        #    ),
+        #],
     ]
 
     #DIST_TO_JOINT = {

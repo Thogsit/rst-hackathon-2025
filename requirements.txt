@@ -3,3 +3,7 @@ sympy
 spatialmath-python
 sympy
 dynamixel-sdk
+opencv-python
+ultralytics
+pygame
+scipy

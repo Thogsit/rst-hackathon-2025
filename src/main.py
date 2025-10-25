@@ -1,4 +1,5 @@
 import logging
+import time
 from threading import Thread
 from typing import List
 
@@ -23,6 +24,9 @@ def main():
     perception_processing_thread = Thread(target=perception_controller.run_processing, daemon=True)
     THREADS.append(perception_processing_thread)
     perception_processing_thread.start()
+
+    #time.sleep(10)
+    #exit(0)
 
     # Recommended: use the bus as a context manager
     with KochV1_DxlBus(motor_physical_home_positions) as dxl_bus:
