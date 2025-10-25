@@ -2,7 +2,7 @@ from threading import Lock
 from typing import List
 
 import numpy as np
-from models import Detection, ObjectType, Position
+from models import Detection, ObjectType, Position, ImagePosition
 from perception.duck_data import DuckData
 
 import cv2
@@ -41,15 +41,15 @@ class PerceptionController:
                                        [0.0, 0.0, 1.0]], dtype=np.float32)
 
         self.world_points = np.array([
-            [0.8, -0.15, 0.0],
-            [0.663, -0.15, 0.0],
-            [0.663, 0.15, 0.0],
-            [0.8, 0.15, 0.0]
+            [0.8, -0.1325, 0.0],
+            [0.663, -0.1325, 0.0],
+            [0.663, 0.1325, 0.0],
+            [0.8, 0.1325, 0.0]
         ], dtype=np.float32)
 
         self.t_vec = np.array([0.02, 0.132, 0.23], dtype=np.float32)
         self.r_vec = np.array([0.0, -90.0, 90.0], dtype=np.float32) # DEGREE
-        yaw = -15
+        yaw = -30
         pitch = 19
 
         self.rotation_matrix = R.from_euler('xyz', self.r_vec, degrees=True).as_matrix()
@@ -164,13 +164,25 @@ class PerceptionController:
                 h = bbox.xywh[0][3]
                 v = v + h/2
 
+                point = np.array([v, u, 1])
+                point = np.linalg.inv(self.camera_matrix) @ point
+                point = np.linalg.inv(self.yaw_matrix) @ point
+                point = np.linalg.inv(self.pitch_matrix) @ point
+                point = np.linalg.inv(self.rotation_matrix) @ point
+
+                point = point / np.linalg.norm(point)
+                lambda_ = - self.t_vec[2] / point[2]
+                point = lambda_ * point + self.t_vec
+                point[2] = 0
+
                 if bbox.id is not None:
                     object_id = int(bbox.id)
                 else:
                     object_id = -1
 
-                position = Position(x=v, y=v, z=1)
-                detections.append(Detection(position, class_type, object_id))
+                position = Position(x=point[0], y=point[1], z=point[2])
+                image_position = ImagePosition(x=v, y=u)
+                detections.append(Detection(position, image_position, class_type, object_id))
 
             pygame.display.flip()
             self.last_detections = detections
