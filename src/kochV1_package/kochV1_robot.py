@@ -62,21 +62,28 @@ class KochV1_Robot:
         Set the joint velocities of the robot.
         :param joint_velocities: List of joint velocities in RAD/S.
         """
+
         joint_velocities_verified = []
         for motor, joint_velocity in zip(self._dxl_bus.motors[:5], joint_velocities):
-            if np.abs(joint_velocity) > 150:
-                logging.debug(f"\n\tOVERFULL VELOCITY: {joint_velocity}")
+            joint_velocity_verified = int(np.clip(joint_velocity, -150, 150))   # limit to max velocity of the motor
+            joint_velocities_verified.append(joint_velocity_verified)
 
-                joint_velocity = np.sign(joint_velocity) * 150
-                
-            joint_velocities_verified.append(joint_velocity)
-
-            self._dxl_bus.write_reg(motor.id, motor.RAM.PROFILE_ACCELERATION, int(np.abs(joint_velocity) / 2) + 1)
+            # see dynamixel profile velocity and profile acceleration
+            # https://emanual.robotis.com/docs/en/software/dynamixel/dynamixel_sdk/overview/
+            # set max possible acceleration based on velocity
+            acceleration_value = int(np.abs(joint_velocity_verified) / 2)
+            self._dxl_bus.write_reg(motor.id, motor.RAM.PROFILE_ACCELERATION, int(np.abs(joint_velocity) / 2))
         
         self._dxl_bus.set_goal_velocities(joint_velocities_verified)
 
     def read_joint_velocities(self, unit=Unit.RAD_S):
         return self._dxl_bus.read_joint_velocities(unit)        
+
+    def set_velocity_control_mode(self):
+        self._dxl_bus.set_velocity_control_mode()
+    
+    def set_epcm_control_mode(self):
+        self._dxl_bus.set_epcm_control_mode()
 
     def _apply_dh_q_offsets(self):
         for i, dh_joint in enumerate(self.kinematics_model.robot_cfg.dh_joints):

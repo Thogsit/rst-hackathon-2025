@@ -39,6 +39,7 @@ class KochV1_DxlBus(DxlBus):
         #    raise RuntimeError("Invalid motor configuration: incorrect Operating Mode, please check Motors using Wizard 2.0")
         
         for motor in self.motors:
+            self.set_epcm_control_mode()
             self._init_physical_home_position(motor)
             
             self._set_motor_velocity_and_acceleration(motor, velocity=150, acceleration=10)
@@ -128,7 +129,7 @@ class KochV1_DxlBus(DxlBus):
         logging.debug(f"Gripper Data Write: {gripper_position}")
         self.write_reg(6, DynamixelXL330_M288.RAM.GOAL_POSITION, gripper_position)
 
-    def set_goal_velocities(self, joint_velocities: List[float]):
+    def set_goal_velocities(self, joint_velocities: List[int]):
         """
         Set the joint velocities for the robot arm.
         :param joint_velocities: List of joint velocities (in DXL units).
