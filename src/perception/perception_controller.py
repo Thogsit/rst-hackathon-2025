@@ -135,7 +135,7 @@ class PerceptionController:
                     pygame.draw.circle(PerceptionController.yolo_screen, (255, 0, 255), (int(point[0]), int(point[1])), 5)
 
 
-            detections = []
+            detections: List[Detection] = []
 
             for bbox in result.boxes.cpu():
                 class_id = int(bbox.cls[0])
@@ -185,6 +185,8 @@ class PerceptionController:
                 image_position = ImagePosition(x=v, y=u)
                 detections.append(Detection(position, image_position, class_type, object_id))
 
+            for d in detections:
+                print(str(d.object_type) + ", " + str(d.object_id) + ": " + str(d.image_position.x) + ", " + str(d.image_position.y))
             self.write_detections(detections)
             pygame.display.flip()
             self.last_detections = detections

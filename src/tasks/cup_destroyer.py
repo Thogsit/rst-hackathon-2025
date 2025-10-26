@@ -11,7 +11,7 @@ class CupDestroyerTask(AbstractTask):
     DISTANCE_TO_CUPS = 0.7
     LEFT_IMAGE_OFFSET = 60.0
     RIGHT_IMAGE_OFFSET = 240.0
-    CUP_HORIZONTAL_DISTANCE_IN_M = 0.195
+    CUP_HORIZONTAL_DISTANCE_IN_M = 0.205
     TEST_DETECTIONS = [
         [
             Detection(
