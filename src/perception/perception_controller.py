@@ -78,6 +78,7 @@ class PerceptionController:
     def calc_duck_radius() -> Dict[ObjectType, int]:
         PerceptionController.DUCK_DATA_LOCK.acquire()
         duck_data = PerceptionController.DUCK_DATA.copy()
+        PerceptionController.DUCK_DATA = {}
         PerceptionController.DUCK_DATA_LOCK.release()
 
         # Object Type -> radius mapping
@@ -226,10 +227,10 @@ class PerceptionController:
             self.DUCK_DATA_LOCK.acquire()
             for d in detections:
                 # Filter for ducks
-                if d.object_type > ObjectType.CUP and d.image_position.x -15 < self.DUCK_RADIUS_MAP[0].x < d.image_position.x + 15:
+                if d.object_type > ObjectType.CUP and d.image_position.x -20 < self.DUCK_RADIUS_MAP[0].x < d.image_position.x + 20:
                     if d.object_id not in self.DUCK_DATA:
-                        self.DUCK_DATA[d.object_id] = []
-                    self.DUCK_DATA[d.object_id].append(d.image_position)
+                        self.DUCK_DATA[d.object_id] = (d.object_type,[])
+                    self.DUCK_DATA[d.object_id][1].append(d.image_position)
             self.DUCK_DATA_LOCK.release()
 
             self.write_detections(detections)

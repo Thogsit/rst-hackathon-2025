@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, IntEnum
 
 
 class Position:
@@ -18,7 +18,7 @@ class Vector:
         self.y = y
         self.z = z
 
-class ObjectType(Enum):
+class ObjectType(IntEnum):
     TARGET_BALL = 0
     BALL = 1
     CUP = 2
