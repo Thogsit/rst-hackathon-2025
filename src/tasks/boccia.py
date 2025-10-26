@@ -5,6 +5,7 @@ from typing import List, Tuple
 
 from kochV1_package import KochV1_Robot
 from models import Detection, ObjectType, Position
+from perception.perception_controller import PerceptionController
 from tasks.abstract_task import AbstractTask
 from utils import Unit
 
@@ -83,7 +84,11 @@ class BocciaTask(AbstractTask):
         self.controls.set_direction(0)
         self.controls.change_arm_joints([90, -65, 10])
 
-        for detections in self.TEST_DETECTIONS:
+        detections = PerceptionController.read_detections()
+        for detection in detections:
+            if detection.object_id != ObjectType.TARGET_BALL:
+                continue
+
             # Phase 1: Receive ball, i.e. move back, open hand, close hand
             self.controls.change_arm_joints([90, 20, 10])
             self.controls.change_arm_joints([125, 30, -10])
@@ -96,7 +101,7 @@ class BocciaTask(AbstractTask):
             # Phase 2: Move to throw position
             self.controls.change_arm_joints([90, 20, 10])
             #self.controls.change_arm_joints([55, -40, -20])
-            target_deg, dist_to_target = self.get_direction_in_deg_and_dist_by_detections(detections)
+            target_deg, dist_to_target = self.get_direction_in_deg_and_dist_by_detections(detection)
             print("Target degrees: " + str(target_deg))
             print("Distance to target: " + str(dist_to_target))
             #dist_keys = list(self.DIST_TO_JOINT.keys())
@@ -129,24 +134,25 @@ class BocciaTask(AbstractTask):
             self.robot.set_velocity_and_accel() # Reset to defaults
 
     @staticmethod
-    def get_direction_in_deg_and_dist_by_detections(detections: List[Detection]) -> Tuple[float, float]:
+    def get_direction_in_deg_and_dist_by_detections(detection: Detection) -> Tuple[float, float]:
         # Filter out non-targets
-        detections = [d for d in detections if d.object_type == ObjectType.TARGET_BALL]
-        if len(detections) == 0:
-            print("No detections found!")
-            return 0.0, 0.0  # TODO: Fix this
+        if detection.image_position.x < 430:
+            target_degrees = 15
+            print("Very Left mode!")
+        elif detection.image_position.x < 960:
+            target_degrees = 0
+            print("Left mode!")
+        elif detection.image_position.x < 960:
+            target_degrees = -15
+            print("Right mode!")
+        else:
+            target_degrees = -30
+            print("Very Right mode!")
 
-        target_position = detections[0].position
-        if target_position.x == 0:
-            print("No divide by ZERO!")
-            return 0.0, 0.0
-
-        target_degrees = math.atan(target_position.y / target_position.x)
-        target_degrees = target_degrees / math.pi * 180
         print("Raw target degrees: " + str(target_degrees))
         left_max_deg = float(17 if BocciaTask.PLATFORM_POS == PlatformPosition.LEFT else 17)
         right_max_deg = float(-17 if BocciaTask.PLATFORM_POS == PlatformPosition.RIGHT else -17)
         target_degrees = max(target_degrees, right_max_deg)
         target_degrees = min(target_degrees, left_max_deg)
-        dist_to_target = math.sqrt(target_position.x ** 2 + target_position.y ** 2)
+        dist_to_target = 80
         return target_degrees, dist_to_target
