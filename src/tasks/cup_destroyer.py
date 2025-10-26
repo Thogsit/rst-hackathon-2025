@@ -11,7 +11,9 @@ class CupDestroyerTask(AbstractTask):
     DISTANCE_TO_CUPS = 0.7
     LEFT_IMAGE_OFFSET = 60.0
     RIGHT_IMAGE_OFFSET = 240.0
-    CUP_HORIZONTAL_DISTANCE_IN_M = 0.205
+    OFFSET_DIST = RIGHT_IMAGE_OFFSET - LEFT_IMAGE_OFFSET
+    RIGHT_X_FACTOR = 1.25
+    CUP_HORIZONTAL_DISTANCE_IN_M = 0.205 * RIGHT_X_FACTOR
     TEST_DETECTIONS = [
         [
             Detection(
@@ -59,20 +61,22 @@ class CupDestroyerTask(AbstractTask):
         success_runs = 0
         no_detection_runs = 0
         while success_runs < 3:
-            # Phase 1: Receive ball, i.e. move back, open hand, close hand
-            self.controls.change_arm_joints([90, 20, -20])
-            self.controls.change_arm_joints([130, 10, -30])
-            #detections = self.TEST_DETECTIONS[0] # TODO: Change to real detections
+            time.sleep(1) # Time for cups to settle
             detections = PerceptionController.read_detections()
             target_degree = self.calculate_degrees_from_detections(detections)
             if target_degree is None:
                 no_detection_runs += 1
                 print("No valid detections found")
-                if no_detection_runs > 6:
+                if no_detection_runs > 4:
                     print("No cups are standing anymore, taking a nap")
                     return
-                time.sleep(0.5)
+                time.sleep(0.7)
                 continue
+
+            # Phase 1: Receive ball, i.e. move back
+            self.controls.change_arm_joints([90, 20, -20])
+            self.controls.change_arm_joints([130, 10, -30], margin=8.0)
+            success_runs += 1
             print("Target Degree: " + str(target_degree))
             self.controls.set_direction(target_degree, degree_margin=0.5)
             self.controls.set_hand_turn(90)
@@ -87,6 +91,7 @@ class CupDestroyerTask(AbstractTask):
 
     @staticmethod
     def image_pos_to_position(pos: ImagePosition) -> Position:
+        print("Image pos: " + str(pos.x) + ", " + str(pos.y))
         # Clamp the x position to be within the offsets
         clamped_x = max(CupDestroyerTask.LEFT_IMAGE_OFFSET,
                         min(pos.x, CupDestroyerTask.RIGHT_IMAGE_OFFSET))
@@ -97,26 +102,23 @@ class CupDestroyerTask(AbstractTask):
         # Calculate offset from center in pixels
         pixel_offset_from_center = clamped_x - center
 
-        # Calculate the total pixel range
-        pixel_range = CupDestroyerTask.RIGHT_IMAGE_OFFSET - CupDestroyerTask.LEFT_IMAGE_OFFSET
-
         # Convert to meters, then to centimeters
         # The offset as a ratio of the total range, multiplied by the physical distance
-        y_in_meters = (pixel_offset_from_center / pixel_range) * CupDestroyerTask.CUP_HORIZONTAL_DISTANCE_IN_M
+        y_in_meters = (pixel_offset_from_center / CupDestroyerTask.OFFSET_DIST) * CupDestroyerTask.CUP_HORIZONTAL_DISTANCE_IN_M
 
         return Position(CupDestroyerTask.DISTANCE_TO_CUPS, -y_in_meters, pos.y / -1000)
 
     @staticmethod
     def calculate_degrees_from_detections(detections: List[Detection]) -> float | None:
         # Filter all irrelevant detections
-        detections = [d for d in detections if d.object_type == ObjectType.CUP]
+        detections = [d for d in detections if d.object_type == ObjectType.CUP and d.image_position.y < 250 and d.image_position.x < CupDestroyerTask.RIGHT_IMAGE_OFFSET + 50]
         if len(detections) == 0:
             return None # TODO Fix
 
         # Transform image positions to real positions
         for i, val in enumerate(detections):
             detections[i].position = CupDestroyerTask.image_pos_to_position(val.image_position)
-            print("Detection " + str(i) + ": " + str(detections[i].position.y))
+            print("Detection " + str(i) + ": " + str(detections[i].position.x) + ", " + str(detections[i].position.y))
 
         target_position = detections[0].position
         if len(detections) > 1:
@@ -147,6 +149,7 @@ class CupDestroyerTask(AbstractTask):
                             closest_cup_pair = (detection1, detection2)
 
                 dist_between_cups = CupDestroyerTask.y_dist_between_detections(low_level_cups[0], low_level_cups[1])
+                print("Dist between cups: " + str(dist_between_cups))
                 if abs(dist_between_cups) < 0.11:
                     print("Found 2 adjacent cups: " + str(closest_cup_pair[0].object_id) + ", " + str(closest_cup_pair[1].object_id))
                     left_detection = closest_cup_pair[0] if closest_cup_pair[0].position.y > closest_cup_pair[1].position.y else closest_cup_pair[1]
@@ -156,10 +159,10 @@ class CupDestroyerTask(AbstractTask):
                     print("Too far in between, taking " + str(closest_cup_pair[0].object_id))
                     target_position = closest_cup_pair[0].position # Just take one randomly if they're too far away
 
-            # Calculate degrees from target position
-            target_degrees = target_position.y * 100
-            target_degrees = max(-11.0, min(11.0, target_degrees))
-            return target_degrees
+        # Calculate degrees from target position
+        target_degrees = target_position.y * 100
+        target_degrees = max(-12.5, min(11.0, target_degrees))
+        return target_degrees
 
     @staticmethod
     def y_dist_between_detections(d1: Detection, d2: Detection) -> float:

@@ -14,9 +14,11 @@ class PerceptionController:
     # DO NOT TOUCH THIS VAR DIRECTLY!
     CUR_DETECTIONS: List[Detection] = []
     DUCK_DATA: List[DuckData] = []
+    KILL_ALL: bool = False
 
     DETECTIONS_LOCK = Lock()
     DUCK_DATA_LOCK = Lock()
+    KILL_LOCK = Lock()
 
     INTERNAL_LOCK = Lock()
     yolo_screen = None
@@ -60,6 +62,19 @@ class PerceptionController:
         self.last_detections = []
 
     @staticmethod
+    def write_kill_all(kill_all: bool):
+        PerceptionController.KILL_LOCK.acquire()
+        PerceptionController.KILL_ALL = kill_all
+        PerceptionController.KILL_LOCK.release()
+
+    @staticmethod
+    def get_kill_all() -> bool:
+        PerceptionController.KILL_LOCK.acquire()
+        kill_all = PerceptionController.KILL_ALL
+        PerceptionController.KILL_LOCK.release()
+        return kill_all
+
+    @staticmethod
     def write_detections(new_detections: List[Detection]):
         PerceptionController.DETECTIONS_LOCK.acquire()
         PerceptionController.CUR_DETECTIONS = new_detections
@@ -86,7 +101,7 @@ class PerceptionController:
         PerceptionController.DUCK_DATA_LOCK.release()
 
     def run_yolo(self):
-        while self.cap.isOpened():
+        while self.cap.isOpened() and not PerceptionController.get_kill_all():
             success, frame = self.cap.read()
 
             if success:
@@ -103,7 +118,7 @@ class PerceptionController:
             PerceptionController.yolo_screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
             pygame.display.set_caption("DuckHack4 YOLO")
 
-        while self.cap.isOpened():
+        while self.cap.isOpened() and not PerceptionController.get_kill_all():
             self.INTERNAL_LOCK.acquire(timeout=10)
             if len(self.results) == 0:
                 self.INTERNAL_LOCK.release()
@@ -182,11 +197,12 @@ class PerceptionController:
                     object_id = -1
 
                 position = Position(x=point[0], y=point[1], z=point[2])
-                image_position = ImagePosition(x=v, y=u)
+                image_position = ImagePosition(x=u, y=v)
                 detections.append(Detection(position, image_position, class_type, object_id))
 
-            for d in detections:
-                print(str(d.object_type) + ", " + str(d.object_id) + ": " + str(d.image_position.x) + ", " + str(d.image_position.y))
+            #for d in detections:
+            #    if d.object_type == ObjectType.CUP:
+            #        print(str(d.object_type) + ", " + str(d.object_id) + ": " + str(d.image_position.x) + ", " + str(d.image_position.y))
             self.write_detections(detections)
             pygame.display.flip()
             self.last_detections = detections

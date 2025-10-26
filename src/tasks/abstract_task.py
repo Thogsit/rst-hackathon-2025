@@ -4,6 +4,8 @@ from kochV1_package import KochV1_Robot
 from tasks.controls import Controls
 from utils import Unit
 
+from perception.perception_controller import PerceptionController
+
 
 class AbstractTask(ABC):
     controls: Controls = None
@@ -22,5 +24,6 @@ class AbstractTask(ABC):
         except KeyboardInterrupt:
             print("Going back to safety position...")
         finally:
+            PerceptionController.write_kill_all(True)
             self.controls.safe_return(self.bottom_safety_pos)
             self.robot.set_epcm_control_mode()

@@ -91,8 +91,6 @@ class Controls:
             if not joints:
                 time.sleep(self.WAIT_TIME)
 
-            print(joints)
-
             is_in_margin = True
             for i, value in enumerate(joint_angles):
                 offset = 0

@@ -6,3 +6,6 @@
 10: 428, 271
 12: 456, 267
 14: 479, 279
+
+Left Cup: 205, 73
+Same height but complete right
