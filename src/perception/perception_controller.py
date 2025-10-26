@@ -220,7 +220,7 @@ class PerceptionController:
                     object_id = -1
 
                 position = Position(x=world_point[0], y=world_point[1], z=world_point[2])
-                print(f"World Point = {world_point}")
+                #print(f"World Point = {world_point}")
                 image_position = ImagePosition(x=u, y=v)
                 detections.append(Detection(position, image_position, class_type, object_id))
 

@@ -84,10 +84,11 @@ class BocciaTask(AbstractTask):
         self.controls.set_direction(0)
         self.controls.change_arm_joints([90, -65, 10])
 
-        detections = PerceptionController.read_detections()
-        for detection in detections:
-            if detection.object_id != ObjectType.TARGET_BALL:
-                continue
+        #detections = PerceptionController.read_detections()
+        degrees = [-17, -7, 0]
+        for degree in degrees:
+            #if detection.object_id != ObjectType.TARGET_BALL:
+            #    continue
 
             # Phase 1: Receive ball, i.e. move back, open hand, close hand
             self.controls.change_arm_joints([90, 20, 10])
@@ -101,9 +102,10 @@ class BocciaTask(AbstractTask):
             # Phase 2: Move to throw position
             self.controls.change_arm_joints([90, 20, 10])
             #self.controls.change_arm_joints([55, -40, -20])
-            target_deg, dist_to_target = self.get_direction_in_deg_and_dist_by_detections(detection)
+            #target_deg, dist_to_target = self.get_direction_in_deg_and_dist_by_detections(detection)
+            target_deg = degree
             print("Target degrees: " + str(target_deg))
-            print("Distance to target: " + str(dist_to_target))
+            #print("Distance to target: " + str(dist_to_target))
             #dist_keys = list(self.DIST_TO_JOINT.keys())
             #dist_keys.sort()
             #dist_key = dist_keys[0]
@@ -117,12 +119,7 @@ class BocciaTask(AbstractTask):
             time.sleep(1.5)
             #self.controls.open_hand()
 
-            if dist_to_target < 0.35:
-                print("Short throw")
-                end_pos = [55, -10, 10]
-            else:
-                print("Long throw")
-                end_pos = [55, -10, 10]
+            end_pos = [55, -10, 10]
 
             # Phase 3: Throw ball
             self.robot.set_velocity_and_accel(0, 0)
