@@ -1,3 +1,4 @@
+import datetime
 import time
 
 from kochV1_package import KochV1_Robot
@@ -6,7 +7,7 @@ from tasks.abstract_task import AbstractTask
 
 
 class DuckGrabberTask(AbstractTask):
-    END_POS_MAP = {
+    GRAB_POS_MAP = {
         13.0: [70, -30, -90],
         11.0: [65, -27, -90],
         9.0: [62, -18, -90],
@@ -27,40 +28,38 @@ class DuckGrabberTask(AbstractTask):
         self.controls.completely_close_hand()
 
         # Task loop
-        while True:
+        begin_time = datetime.datetime.now()
+        while datetime.datetime.now() - begin_time < datetime.timedelta(seconds=35):
             # Phase 1: Move arm over ducks
             self.controls.set_hand_turn(-90)
-            radius = 1.0
-            radius_keys = list(self.END_POS_MAP.keys())
+
+            # Detect ducks and choose highest value one
+            duck_radius_map = PerceptionController.calc_duck_radius()
+            if len(duck_radius_map) == 0:
+                print("No ducks found")
+                time.sleep(0.5)
+                continue
+            duck_types = list(duck_radius_map.keys())
+            duck_types.sort()
+            radius = duck_radius_map[duck_types[0]]
+
+            radius_keys = list(self.GRAB_POS_MAP.keys())
             radius_keys.sort()
             radius_key = radius_keys[0]
             for k in radius_keys:
-               if k < radius:
-                   radius_key = k
-            end_pos = self.END_POS_MAP[radius_key]
+                if k < radius:
+                    radius_key = k
+            end_pos = self.GRAB_POS_MAP[radius_key]
 
+            # Prepare down movement
             self.controls.change_arm_joints([92, end_pos[1], end_pos[2]])
-            self.controls.change_arm_joints(end_pos)
 
-            # Phase 2: Get arm down to catch duck
-            target_duck = None
-            while True:
-                duck_data = PerceptionController.read_duck_data()
-                if len(duck_data) == 0:
-                    print("Not seeing any ducks atm")
-                    time.sleep(0.5)
-                    continue
-                target_duck = duck_data[0]
-                for duck in duck_data:
-                    if duck.object_id > target_duck.object_id:
-                        target_duck = duck
-            target_radius = target_duck.radius
-            # TODO: Implement this!
+            # Move down
+            self.controls.change_arm_joints(end_pos)
+            time.sleep(5)
 
             # Phase 3: Get arm back behind to receive duck
             self.controls.change_arm_joints([90, -65, 30])
             self.controls.change_arm_joints([90, 20, 30])
             self.controls.change_arm_joints([125, 30, 30])
-            time.sleep(5) # Wait until duck is taken
-
-            break
+            time.sleep(4) # Wait until duck is taken

@@ -1,5 +1,5 @@
 from threading import Lock
-from typing import List
+from typing import List, Dict, Tuple
 
 import numpy as np
 from models import Detection, ObjectType, Position, ImagePosition
@@ -13,7 +13,6 @@ from scipy.spatial.transform import Rotation as R
 class PerceptionController:
     # DO NOT TOUCH THIS VAR DIRECTLY!
     CUR_DETECTIONS: List[Detection] = []
-    DUCK_DATA: List[DuckData] = []
     KILL_ALL: bool = False
 
     DETECTIONS_LOCK = Lock()
@@ -23,6 +22,20 @@ class PerceptionController:
     INTERNAL_LOCK = Lock()
     yolo_screen = None
     dect_screen = None
+
+    # Object ID to positions mapping
+    DUCK_DATA: Dict[int, Tuple[ObjectType, List[ImagePosition]]] = {}
+
+    DUCK_RADIUS_MAP = {
+        0: ImagePosition(279, 321),
+        2: ImagePosition(277, 335),
+        4: ImagePosition(267, 354),
+        6: ImagePosition(275, 376),
+        8: ImagePosition(274, 399),
+        10: ImagePosition(271, 428),
+        12: ImagePosition(267, 456),
+        14: ImagePosition(279, 479),
+    }
 
     def __init__(self):
         self.model = YOLO("./model.pt")
@@ -62,6 +75,36 @@ class PerceptionController:
         self.last_detections = []
 
     @staticmethod
+    def calc_duck_radius() -> Dict[ObjectType, int]:
+        PerceptionController.DUCK_DATA_LOCK.acquire()
+        duck_data = PerceptionController.DUCK_DATA.copy()
+        PerceptionController.DUCK_DATA_LOCK.release()
+
+        # Object Type -> radius mapping
+        duck_to_radius: Dict[ObjectType, int] = {}
+
+        for duck in duck_data.keys():
+            closest_points: Dict[int, int] = {} # Radius to count mapping
+            positions = duck_data[duck][1]
+            for img_pos in positions:
+                for radius in PerceptionController.DUCK_RADIUS_MAP.keys():
+                    rad_pos = PerceptionController.DUCK_RADIUS_MAP[radius]
+                    if abs(img_pos.y - rad_pos.y) < 30:
+                        if radius not in closest_points:
+                            closest_points[radius] = 1
+                        else:
+                            closest_points[radius] += 1
+
+            if len(closest_points) > 0:
+                max_count_key = list(closest_points.keys())[0]
+                for radius in closest_points:
+                    if closest_points[radius] > closest_points[max_count_key]:
+                        max_count_key = radius
+                duck_to_radius[duck_data[duck][0]] = max_count_key
+
+        return duck_to_radius
+
+    @staticmethod
     def write_kill_all(kill_all: bool):
         PerceptionController.KILL_LOCK.acquire()
         PerceptionController.KILL_ALL = kill_all
@@ -86,19 +129,6 @@ class PerceptionController:
         cur_detections = [val for val in PerceptionController.CUR_DETECTIONS]
         PerceptionController.DETECTIONS_LOCK.release()
         return cur_detections
-
-    @staticmethod
-    def read_duck_data() -> List[DuckData]:
-        PerceptionController.DUCK_DATA_LOCK.acquire()
-        cur_duck_data = [val for val in PerceptionController.DUCK_DATA]
-        PerceptionController.DUCK_DATA_LOCK.release()
-        return cur_duck_data
-
-    @staticmethod
-    def write_duck_data(new_duck_data: List[DuckData]):
-        PerceptionController.DUCK_DATA_LOCK.acquire()
-        PerceptionController.DUCK_DATA = new_duck_data
-        PerceptionController.DUCK_DATA_LOCK.release()
 
     def run_yolo(self):
         while self.cap.isOpened() and not PerceptionController.get_kill_all():
@@ -200,9 +230,15 @@ class PerceptionController:
                 image_position = ImagePosition(x=u, y=v)
                 detections.append(Detection(position, image_position, class_type, object_id))
 
-            #for d in detections:
-            #    if d.object_type == ObjectType.CUP:
-            #        print(str(d.object_type) + ", " + str(d.object_id) + ": " + str(d.image_position.x) + ", " + str(d.image_position.y))
+            self.DUCK_DATA_LOCK.acquire()
+            for d in detections:
+                # Filter for ducks
+                if d.object_type > ObjectType.CUP and d.image_position.x -15 < self.DUCK_RADIUS_MAP[0].x < d.image_position.x + 15:
+                    if d.object_id not in self.DUCK_DATA:
+                        self.DUCK_DATA[d.object_id] = []
+                    self.DUCK_DATA[d.object_id].append(d.image_position)
+            self.DUCK_DATA_LOCK.release()
+
             self.write_detections(detections)
             pygame.display.flip()
             self.last_detections = detections
