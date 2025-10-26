@@ -84,66 +84,69 @@ class BocciaTask(AbstractTask):
         self.controls.set_direction(0)
         self.controls.change_arm_joints([90, -65, 10])
 
-        #detections = PerceptionController.read_detections()
-        degrees = [-17, -7, 0]
-        for degree in degrees:
-            #if detection.object_id != ObjectType.TARGET_BALL:
-            #    continue
+        throw = 0
+        while throw < 3:
+            detections = PerceptionController.read_detections()
+            for detection in detections:
+                if detection.object_type != ObjectType.TARGET_BALL:
+                    continue
+                print(f"Found Target ball at {detection.image_position.x}")
 
-            # Phase 1: Receive ball, i.e. move back, open hand, close hand
-            self.controls.change_arm_joints([90, 20, 10])
-            self.controls.change_arm_joints([125, 30, -10])
-            self.controls.set_hand_turn(90)
-            self.controls.open_hand()
-            input("Press ENTER to begin throw!")
-            self.controls.close_hand()
-            self.controls.set_hand_turn(-90)
+                # Phase 1: Receive ball, i.e. move back, open hand, close hand
+                self.controls.change_arm_joints([90, 20, 10])
+                self.controls.change_arm_joints([125, 30, -10])
+                self.controls.set_hand_turn(90)
+                self.controls.open_hand()
+                input("Press ENTER to begin throw!")
+                self.controls.close_hand()
+                self.controls.set_hand_turn(-90)
 
-            # Phase 2: Move to throw position
-            self.controls.change_arm_joints([90, 20, 10])
-            #self.controls.change_arm_joints([55, -40, -20])
-            #target_deg, dist_to_target = self.get_direction_in_deg_and_dist_by_detections(detection)
-            target_deg = degree
-            print("Target degrees: " + str(target_deg))
-            #print("Distance to target: " + str(dist_to_target))
-            #dist_keys = list(self.DIST_TO_JOINT.keys())
-            #dist_keys.sort()
-            #dist_key = dist_keys[0]
-            #for k in dist_keys:
-            #    if k < dist_to_target:
-            #        dist_key = k
-            #start_pos, end_pos = self.DIST_TO_JOINT[dist_key]
-            start_pos = [37, -60, -10]
-            self.controls.change_arm_joints(start_pos)
-            self.controls.set_direction(target_deg, degree_margin=0.5)
-            time.sleep(1.5)
-            #self.controls.open_hand()
+                # Phase 2: Move to throw position
+                self.controls.change_arm_joints([90, 20, 10])
+                #self.controls.change_arm_joints([55, -40, -20])
+                target_deg, dist_to_target = self.get_direction_in_deg_and_dist_by_detections(detection)
+                print("Target degrees: " + str(target_deg))
+                #print("Distance to target: " + str(dist_to_target))
+                #dist_keys = list(self.DIST_TO_JOINT.keys())
+                #dist_keys.sort()
+                #dist_key = dist_keys[0]
+                #for k in dist_keys:
+                #    if k < dist_to_target:
+                #        dist_key = k
+                #start_pos, end_pos = self.DIST_TO_JOINT[dist_key]
+                start_pos = [37, -60, -10]
+                self.controls.change_arm_joints(start_pos)
+                self.controls.set_direction(target_deg, degree_margin=0.5)
+                time.sleep(1.5)
+                #self.controls.open_hand()
 
-            end_pos = [55, -10, 10]
+                end_pos = [55, -10, 10]
 
-            # Phase 3: Throw ball
-            self.robot.set_velocity_and_accel(0, 0)
-            #self.controls.change_arm_joints(end_pos)
-            self.robot.set_joints([target_deg, end_pos[0], end_pos[1], end_pos[2], -90], unit=Unit.DEG)
-            self.controls.open_hand()
-            time.sleep(1)
-            self.controls.close_hand()
-            self.robot.set_velocity_and_accel() # Reset to defaults
+                # Phase 3: Throw ball
+                self.robot.set_velocity_and_accel(0, 0)
+                #self.controls.change_arm_joints(end_pos)
+                self.robot.set_joints([target_deg, end_pos[0], end_pos[1], end_pos[2], -90], unit=Unit.DEG)
+                self.controls.open_hand()
+                time.sleep(1)
+                self.controls.close_hand()
+                self.robot.set_velocity_and_accel() # Reset to defaults
+
+                throw += 1
 
     @staticmethod
     def get_direction_in_deg_and_dist_by_detections(detection: Detection) -> Tuple[float, float]:
         # Filter out non-targets
-        if detection.image_position.x < 430:
+        if detection.image_position.x < 300:
             target_degrees = 7.5
             print("Very Left mode!")
-        elif detection.image_position.x < 960:
+        elif detection.image_position.x < 400:
             target_degrees = 0
             print("Left mode!")
-        elif detection.image_position.x < 960:
-            target_degrees = -7.5
+        elif detection.image_position.x <1400 :
+            target_degrees = -10
             print("Right mode!")
         else:
-            target_degrees = -15
+            target_degrees = -17
             print("Very Right mode!")
 
         print("Raw target degrees: " + str(target_degrees))
