@@ -210,23 +210,39 @@ class PerceptionController:
                 h = bbox.xywh[0][3]
                 v = v + h/2
 
-                point = np.array([v, u, 1])
-                point = np.linalg.inv(self.camera_matrix) @ point
-                point = np.linalg.inv(self.yaw_matrix) @ point
-                point = np.linalg.inv(self.pitch_matrix) @ point
-                point = np.linalg.inv(self.rotation_matrix) @ point
+                camera_matrix = self.camera_matrix
+                dist_coeff = np.array([0.183037 -0.508367 -0.039670 -0.006225, 0.0], dtype=np.float32)
+                t_vec = np.array([-148.48441351, 36.40135101, 654.28601231], dtype=np.float32)
+                r_vec = np.array([-0.29931231, 1.48254229, 2.29211894], dtype=np.float32)
+                offset = np.array([0, 0, 0], dtype=np.float32)
+                point = np.array([[[v, u]]], dtype=float)
 
-                point = point / np.linalg.norm(point)
-                lambda_ = - self.t_vec[2] / point[2]
-                point = lambda_ * point + self.t_vec
-                point[2] = 0
+                R, _ = cv2.Rodrigues(r_vec)
+                pixel_undistorded = cv2.undistortPoints(point, camera_matrix, dist_coeff)
+
+                K_inv = np.linalg.inv(camera_matrix)
+                pixel_hom = np.array([pixel_undistorded[0][0], pixel_undistorded[0][1], 1])
+                ray_camera = K_inv @ pixel_hom
+
+                R_T = R.T
+                tvec_world = -R_T @ t_vec
+                ray_direction = R_T @ ray_camera
+
+                if abs(ray_direction[2]) < 1e-6:
+                    continue
+
+                s = -tvec_world[2] / ray_direction[2]
+                world_point = tvec_world + s * ray_direction
+                world_point = world_point - offset
+
 
                 if bbox.id is not None:
                     object_id = int(bbox.id)
                 else:
                     object_id = -1
 
-                position = Position(x=point[0], y=point[1], z=point[2])
+                position = Position(x=world_point[0], y=world_point[1], z=world_point[2])
+                print(f"World Point = {world_point}")
                 image_position = ImagePosition(x=u, y=v)
                 detections.append(Detection(position, image_position, class_type, object_id))
 

@@ -28,7 +28,7 @@ cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 logger.info(f"Camera opened with: {cap.isOpened()}")
 
-def calibrate_camera(img):
+def calibrate_camera(grey, img):
     logger.info("Calibrating camera ...")
     square_size = 25.0
     pattern_size = (7, 10)
@@ -43,10 +43,10 @@ def calibrate_camera(img):
     objp[:, :2] = np.mgrid[0:pattern_size[0], 0:pattern_size[1]].T.reshape(-1, 2) * square_size
 
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-    ret, corners = cv2.findChessboardCorners(img, pattern_size, None)
+    ret, corners = cv2.findChessboardCorners(grey, pattern_size, None)
 
     if ret:
-        corners = cv2.cornerSubPix(img, corners, (11, 11), (-1, -1), criteria)
+        corners = cv2.cornerSubPix(grey, corners, (11, 11), (-1, -1), criteria)
         ret, rvecs, tvecs = cv2.solvePnP(objp, corners, camera_matrix, dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE)
 
         if ret:
@@ -56,13 +56,16 @@ def calibrate_camera(img):
 
             logger.info("Camera was successfully calibrated")
             logger.info(f"Rotation vector: {rvecs}")
-            logger.info(f"Translation vector: {euler}")
+            logger.info(f"Translation vector: {tvecs}")
 
             axis = np.float32([[3*square_size, 0, 0], [0, 3*square_size, 0], [0, 0, -3*square_size]]).reshape(-1, 3)
             imgpts, jac = cv2.projectPoints(axis, rvecs, tvecs, camera_matrix, dist_coeffs)
-            img = cv2.line(img, tuple(imgpts[0].ravel()), tuple(imgpts[1].ravel()), (255, 0, 0), 3)
-            img = cv2.line(img, tuple(imgpts[0].ravel()), tuple(imgpts[2].ravel()), (0, 255, 0), 3)
-            img = cv2.line(img, tuple(imgpts[1].ravel()), tuple(imgpts[2].ravel()), (0, 0, 255), 3)
+            imgpts = imgpts.astype("int32")
+            corner = tuple(corners[0].ravel().astype("int32"))
+            img = cv2.line(img, corner, tuple(imgpts[0].ravel()), (255, 0, 0), 3)
+            img = cv2.line(img, corner, tuple(imgpts[1].ravel()), (0, 255, 0), 3)
+            img = cv2.line(img, corner, tuple(imgpts[2].ravel()), (0, 0, 255), 3)
+
     return img
 
 
@@ -74,8 +77,9 @@ while running:
         logger.error("Cannot receive frame")
         break
     frame = cv2.resize(frame, (WIDTH, HEIGHT))
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    frame = calibrate_camera(frame)
+    grey = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    calibration_frame = calibrate_camera(grey, frame)
 
     surf = pygame.surfarray.make_surface(np.transpose(frame, (1, 0, 2)))
     screen.blit(surf, (0, 0))
