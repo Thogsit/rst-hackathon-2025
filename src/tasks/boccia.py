@@ -137,16 +137,16 @@ class BocciaTask(AbstractTask):
     def get_direction_in_deg_and_dist_by_detections(detection: Detection) -> Tuple[float, float]:
         # Filter out non-targets
         if detection.image_position.x < 430:
-            target_degrees = 15
+            target_degrees = 7.5
             print("Very Left mode!")
         elif detection.image_position.x < 960:
             target_degrees = 0
             print("Left mode!")
         elif detection.image_position.x < 960:
-            target_degrees = -15
+            target_degrees = -7.5
             print("Right mode!")
         else:
-            target_degrees = -30
+            target_degrees = -15
             print("Very Right mode!")
 
         print("Raw target degrees: " + str(target_degrees))
